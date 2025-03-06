@@ -1,6 +1,8 @@
 package com.bridgelabz.AddressBookApp.controller;
 
 import com.bridgelabz.AddressBookApp.DTO.AddressBookEntryDTO;
+import com.bridgelabz.AddressBookApp.service.AddressBookService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,33 +15,27 @@ import java.util.concurrent.atomic.AtomicLong;
 @RequestMapping("/address")
 public class AddressBookController {
 
-    //    List to store Entries
-    private final List<AddressBookEntryDTO> addressBook = new ArrayList<>();
-    private final AtomicLong counter = new AtomicLong(1);
+    @Autowired
+    private AddressBookService addressBookService;
 
     //    Get all entries
     @GetMapping("/get_entry")
     public ResponseEntity<List<AddressBookEntryDTO>> getEntries() {
-        return ResponseEntity.ok(addressBook);
+        return ResponseEntity.ok(addressBookService.getAllEntries());
     }
 
     //    Add new entry
     @PostMapping("/add_entry")
-    public ResponseEntity<String> addEntry(@RequestBody AddressBookEntryDTO entry) {
-        entry.setId(counter.getAndIncrement());
-        addressBook.add(entry);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Entry added successfully!");
+    public ResponseEntity<AddressBookEntryDTO> addEntry(@RequestBody AddressBookEntryDTO entry) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(addressBookService.addEntry(entry));
     }
 
     //    Update an entry
     @PutMapping("/update/{id}")
     public ResponseEntity<String> updateEntry(@PathVariable Long id, @RequestBody AddressBookEntryDTO updatedEntry) {
-        for (int i = 0; i < addressBook.size(); i++) {
-            if (addressBook.get(i).getId().equals(id)) {
-                updatedEntry.setId(id);
-                addressBook.set(i, updatedEntry);
-                return ResponseEntity.ok("Entry updated successfully!");
-            }
+        boolean isUpdated = addressBookService.updateEntry(id, updatedEntry);
+        if (isUpdated) {
+            return ResponseEntity.ok("Entry updated successfully!");
         }
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Entry not found!");
     }
@@ -47,12 +43,10 @@ public class AddressBookController {
     //    Delete an entry
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<String> deleteEntry(@PathVariable Long id) {
-        boolean removed = addressBook.removeIf(entry -> entry.getId().equals(id));
-
-        if (removed) {
+        boolean isRemoved = addressBookService.deleteEntry(id);
+        if (isRemoved) {
             return ResponseEntity.ok("Entry deleted successfully!");
         }
-
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Entry not found!");
     }
 
